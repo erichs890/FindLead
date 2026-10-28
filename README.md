@@ -6,16 +6,54 @@ Receita Federal), que provavelmente ainda não têm site, e organiza o contato n
 Roda **inteiro no seu computador**, como o ACV: sem banco na nuvem, sem login, sem mensalidade. Os dados ficam em
 `%LOCALAPPDATA%\CacaLead`.
 
-> Estado: **etapa 2 de 4** (base da Receita + CRM local). A API (etapa 3) e a tela (etapa 4) vêm a seguir.
+## Como usar
 
-## Requisitos
+1. Instale o **Node.js 24** ou mais novo ([nodejs.org](https://nodejs.org)).
+2. Abra `atualizar-base.bat` e ajuste a linha `FILTROS` (UFs e data mínima). Dê dois cliques nele. A primeira carga
+   leva de 45 a 60 minutos. Depois, uma vez por mês.
+3. Dê dois cliques em `start.bat`. A tela abre em http://localhost:5173.
+4. Em **Ajustes**, escolha sua região, seu nome e a mensagem de apresentação.
 
-- **Node.js 24** ou mais novo (o projeto usa o TypeScript e o SQLite que já vêm no Node, sem compilar nada).
-- **~3 GB livres** durante a ingestão (ZIPs baixados, apagados no fim) + o tamanho da base (tabela abaixo).
+Precisa de **~3 GB livres** durante a ingestão (ZIPs, apagados no fim) + o tamanho da base (tabela abaixo).
 
-```bash
-npm install
+### O que tem na tela
+
+- **Buscar** — UF, cidade, atividade (CNAE, por nome ou código), período de abertura, porte, "tem telefone/e-mail",
+  "só contato direto" (esconde quem só tem contato de contador) e nome. Os filtros ficam na URL: dá para salvar
+  uma busca nos favoritos. **Exportar CSV** baixa tudo que os filtros pegam, no formato do Excel brasileiro.
+- **Detalhe do lead** — status (Novo, Contatado, Respondeu, Fechado, Descartado), WhatsApp com mensagem
+  editável (só para celular), ligar, e-mail, "ver se já tem site" no Google, dados da empresa, **Enriquecer**
+  pela BrasilAPI (situação de hoje + sócios, cache de 24 h), notas e **não contatar**.
+- **Leads** — o seu CRM, por status.
+- **Painel** — aberturas por semana na sua região e o funil dos seus leads.
+
+"Últimos 7 dias" conta a partir da **abertura mais recente da base**, não de hoje: a Receita publica com semanas
+de atraso, e contar de hoje mostraria sempre uma lista vazia.
+
+### Por que roda local e não na nuvem
+
+A base de SP desde 2023 tem ~0,8 GB; o Brasil, ~2 GB. O Supabase grátis aceita 500 MB. Localmente não há limite,
+custo nem login, e a busca num SQLite no seu SSD responde em milissegundos. O servidor só escuta em `127.0.0.1`:
+nada fica exposto na rede.
+
+## Código
+
 ```
+core/                     Node 24 rodando TypeScript direto (sem build)
+  server.ts               API em http://localhost:4790
+  busca.ts                filtros, paginação por cursor, detalhe, painel
+  brasilapi.ts            enriquecimento com cache de 24 h e nova tentativa em 429/5xx
+  base.ts                 anexa a base da Receita à conexão do CRM e troca quando sai uma nova
+  armazenamento/crm.ts    seus leads, notas, opt-out, preferências (crm.db)
+  armazenamento/receita.ts qual base está no ar (atual.json)
+  ingestao/               download, leitura dos ZIPs, gravação e verificações
+src/                      tela em React + Tailwind (Vite, porta 5173)
+  paginas/                Buscar, Leads, Painel, Ajustes
+  componentes/            DetalheLead, Frescor, Autocompletar...
+  tipos.ts                tipos compartilhados entre tela e servidor
+```
+
+Para desenvolver: `npm run core` (servidor que reinicia ao salvar) e `npm run dev` (tela).
 
 ## A base da Receita
 
@@ -50,13 +88,15 @@ Medido em 27/10/2026 com os arquivos de 2026-10:
 | --- | --- |
 | Download | ~7 GB por mês (Estabelecimentos 5,3 GB · Empresas 1,4 GB · Simples 0,3 GB) |
 | Velocidade da Receita | 0,3–1 MB/s **por conexão**; ~4 MB/s com as 6 conexões padrão |
-| Download completo | ~30 min (depende mais do servidor da Receita que da sua internet) |
-| Leitura + gravação | PREENCHER |
-| Base de SP, abertas desde 2023 | PREENCHER |
-| Brasil inteiro, abertas desde 2024 | PREENCHER |
+| Download completo | 30–45 min (depende mais do servidor da Receita que da sua internet; ele derruba conexões e o download retoma sozinho) |
+| Leitura + gravação | ~90 mil linhas/s; ~74 milhões de linhas de Estabelecimentos → ~15 min, em paralelo com o download |
+| Total de uma carga | **~45–60 min** |
+| Base de SP, abertas desde 2023 | ~2,6 milhões de estabelecimentos, ~0,8 GB (estimado a partir de 2 dos 10 arquivos) |
+| Brasil inteiro, abertas desde 2024 | ~6 milhões de estabelecimentos, ~2 GB (estimado) |
 
 O download é sempre o mesmo, importe uma cidade ou o país: os arquivos da Receita não são separados por UF, então
-tudo é lido e o filtro acontece durante a leitura.
+tudo é lido e o filtro acontece durante a leitura. Eles são divididos por faixa de CNPJ: o `Estabelecimentos0`
+(2,3 GB, 31 milhões de linhas) concentra as empresas recentes — sozinho, deu 1,96 milhão das abertas em SP desde 2023.
 
 ### O que vem da Receita (e as armadilhas tratadas)
 
@@ -67,6 +107,9 @@ tudo é lido e o filtro acontece durante a leitura.
 - **Sem cabeçalho, separador `;`, linhas tortas.** Há aspas soltas dentro de campos. Linha com número errado de
   colunas é descartada e contada (aviso se passar de 0,1%), em vez de derrubar o arquivo.
 - **Datas impossíveis** (`20230231`, `00000000`) viram vazio.
+- **Celular sem o nono dígito.** O campo de telefone tem 8 posições: `(11) 9470-9964` é `(11) 99470-9964`.
+  Número de 8 dígitos começando com 6–9 é móvel (Anatel) e ganha o 9 de volta; sem isso, nenhum celular seria
+  reconhecido e o WhatsApp nunca apareceria.
 - **Município é código da Receita, não do IBGE**, e o arquivo de municípios não traz a UF — ela é deduzida dos
   próprios estabelecimentos.
 - **Razão social e porte ficam em outro arquivo** (Empresas), ligado pelos 8 primeiros dígitos do CNPJ. São 60
@@ -109,7 +152,7 @@ npm run check
 ```
 
 ```bash
-npm run tipos
+npm run build
 ```
 
 # FindLead

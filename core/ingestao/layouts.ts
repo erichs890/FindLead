@@ -41,10 +41,17 @@ export function data(bruto: string | undefined): string | null {
   return `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`;
 }
 
-/** DDD + número só com dígitos (ex.: "11987654321"). */
+/**
+ * DDD + número só com dígitos (ex.: "11987654321").
+ *
+ * O campo de telefone da Receita tem 8 posições, então celular chega SEM o nono dígito: "94709964" é
+ * (11) 99470-9964. Pelo plano de numeração da Anatel, número de 8 dígitos começando com 6 a 9 é móvel; a esses
+ * se devolve o 9. Sem isso nenhum celular da base seria reconhecido e o atalho de WhatsApp nunca apareceria.
+ */
 export function telefone(ddd: string | undefined, numero: string | undefined): string | null {
-  const n = numero?.replace(/\D/g, '') ?? '';
+  let n = numero?.replace(/\D/g, '') ?? '';
   if (n.length < 8 || /^0+$/.test(n)) return null;
+  if (n.length === 8 && /^[6-9]/.test(n)) n = `9${n}`;
   const d = (ddd?.replace(/\D/g, '') ?? '').replace(/^0+/, '');
   return d.length === 2 ? d + n : null;
 }

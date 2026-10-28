@@ -1,0 +1,152 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens do CaçaLead. Cada cor tem um papel, e só um:
+ *   fundo/superficie  — o papel em que o conteúdo mora
+ *   tinta/tinta-2     — texto principal e secundário (#1d1d1f 16:1 e #6e6e73 5,1:1 sobre branco)
+ *   folha             — a cor da marca: ações principais e o "frescor" de empresa recém-aberta
+ *                       (#17784f 5,5:1 sobre branco; #3dd68c 9,6:1 sobre #1c1c1e)
+ *   ambar             — atenção: contato de contador, lead esfriando
+ *   perigo            — só para "não contatar" e apagar
+ * Verde porque o produto é sobre o que acabou de nascer, e porque o azul de sistema já é de todo mundo.
+ */
+:root {
+  --fundo: #f5f5f7;
+  --superficie: #ffffff;
+  --superficie-2: #f0f0f3;
+  --linha: rgb(0 0 0 / 0.08);
+  --linha-forte: rgb(0 0 0 / 0.14);
+  --tinta: #1d1d1f;
+  --tinta-2: #6e6e73;
+  --folha: #17784f;
+  --folha-suave: #e3f3ea;
+  --sobre-folha: #ffffff;
+  --ambar: #9a5b00;
+  --ambar-suave: #fdf1dc;
+  --perigo: #c4314b;
+  --perigo-suave: #fbe7ea;
+  --vidro: rgb(245 245 247 / 0.72);
+  --sombra: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0b0b0c;
+    --superficie: #1c1c1e;
+    --superficie-2: #2c2c2e;
+    --linha: rgb(255 255 255 / 0.09);
+    --linha-forte: rgb(255 255 255 / 0.16);
+    --tinta: #f5f5f7;
+    --tinta-2: #a1a1a6;
+    --folha: #3dd68c;
+    --folha-suave: rgb(61 214 140 / 0.14);
+    --sobre-folha: #04210f;
+    --ambar: #ffb340;
+    --ambar-suave: rgb(255 179 64 / 0.14);
+    --perigo: #ff6b81;
+    --perigo-suave: rgb(255 107 129 / 0.14);
+    --vidro: rgb(28 28 30 / 0.72);
+    --sombra: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-linha: var(--linha);
+  --color-linha-forte: var(--linha-forte);
+  --color-tinta: var(--tinta);
+  --color-tinta-2: var(--tinta-2);
+  --color-folha: var(--folha);
+  --color-folha-suave: var(--folha-suave);
+  --color-sobre-folha: var(--sobre-folha);
+  --color-ambar: var(--ambar);
+  --color-ambar-suave: var(--ambar-suave);
+  --color-perigo: var(--perigo);
+  --color-perigo-suave: var(--perigo-suave);
+  --color-vidro: var(--vidro);
+  --shadow-cartao: var(--sombra);
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Inter, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', Inter, system-ui, sans-serif;
+  --ease-mola: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Foco visível só para teclado: anel na cor da marca, sem sumir com o contorno de quem precisa dele. */
+:focus-visible {
+  outline: 2px solid var(--folha);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--folha-suave);
+}
+
+button,
+a,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes brilho {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.esqueleto {
+  background: linear-gradient(90deg, var(--superficie-2) 0%, var(--linha) 50%, var(--superficie-2) 100%);
+  background-size: 200% 100%;
+  animation: brilho 1.4s linear infinite;
+}
+
+@keyframes entrar-baixo {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@keyframes entrar-lado {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+}

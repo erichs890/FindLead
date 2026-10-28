@@ -7,19 +7,33 @@
     "node": ">=24"
   },
   "scripts": {
+    "dev": "vite",
+    "servidor": "node --disable-warning=ExperimentalWarning core/server.ts",
+    "core": "node --watch --disable-warning=ExperimentalWarning core/server.ts",
     "ingestao": "node --disable-warning=ExperimentalWarning core/ingestao/index.ts",
     "ingestao:teste": "node --disable-warning=ExperimentalWarning core/ingestao/index.ts --teste",
     "check": "node --disable-warning=ExperimentalWarning core/ingestao/check.ts",
-    "tipos": "tsc -p core"
+    "build": "tsc --noEmit && tsc -p core && vite build",
+    "tipos": "tsc --noEmit && tsc -p core"
   },
   "dependencies": {
     "csv-parse": "^5.6.0",
     "iconv-lite": "^0.6.3",
+    "lucide-react": "^1.62.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.5",
     "yauzl": "^3.2.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.0.0",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@types/yauzl": "^2.10.3",
-    "typescript": "^5.9.0"
+    "@vitejs/plugin-react": "^6.1.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.0",
+    "vite": "^8.3.5"
   }
 }

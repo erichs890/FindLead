@@ -28,6 +28,8 @@ verificar('29/02 só em ano bissexto', () => {
 });
 verificar('telefone junta DDD e número', () => assert.equal(L.telefone('11', '987654321'), '11987654321'));
 verificar('telefone com DDD com zero à esquerda', () => assert.equal(L.telefone('011', '33334444'), '1133334444'));
+verificar('celular de 8 dígitos ganha o nono dígito (a Receita corta)', () => assert.equal(L.telefone('11', '94709964'), '11994709964'));
+verificar('fixo de 8 dígitos fica como está', () => assert.equal(L.telefone('11', '32315631'), '1132315631'));
 verificar('telefone sem número vira null', () => assert.equal(L.telefone('11', ''), null));
 verificar('telefone zerado vira null', () => assert.equal(L.telefone('11', '00000000'), null));
 verificar('e-mail em minúsculas', () => assert.equal(L.email(' Contato@Empresa.COM.br '), 'contato@empresa.com.br'));

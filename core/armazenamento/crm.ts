@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { CRM_PATH } from '../config.ts';
+import { STATUS, type ItemLeads, type Lead, type Nota, type SnapshotLead, type StatusLead } from '../../src/tipos.ts';
 
 /**
  * Seus dados: o que você fez com cada lead. Mora em `crm.db`, separado da base da Receita, porque a base é
@@ -7,33 +8,6 @@ import { CRM_PATH } from '../config.ts';
  * um lead continua no CRM mesmo que a empresa saia da Receita (baixada) ou dos seus filtros de ingestão — e é
  * para isso que existe o `snapshot`, a cópia do nome e da cidade no dia em que o lead entrou.
  */
-
-export const STATUS = ['novo', 'contatado', 'respondeu', 'fechado', 'descartado'] as const;
-export type StatusLead = (typeof STATUS)[number];
-
-export interface SnapshotLead {
-  razaoSocial: string | null;
-  nomeFantasia: string | null;
-  municipio: string | null;
-  uf: string | null;
-}
-
-export interface Lead {
-  cnpj: string;
-  status: StatusLead;
-  naoContatar: boolean;
-  naoContatarEm: string | null;
-  snapshot: SnapshotLead;
-  criadoEm: string;
-  atualizadoEm: string;
-}
-
-export interface Nota {
-  id: number;
-  cnpj: string;
-  texto: string;
-  criadaEm: string;
-}
 
 export const db = new DatabaseSync(CRM_PATH);
 db.exec(`
@@ -120,6 +94,24 @@ export const leads = {
     if (cnpjs.length === 0) return new Map();
     const linhas = db.prepare(`select * from leads where cnpj in (${cnpjs.map(() => '?').join(',')})`).all(...cnpjs) as unknown as LinhaLead[];
     return new Map(linhas.map(l => [l.cnpj, paraLead(l)]));
+  },
+
+  /** Os leads do CRM, do mais mexido para o menos. Os marcados "não contatar" só aparecem quando pedidos. */
+  listar(filtro: { status?: StatusLead; naoContatar?: boolean }): ItemLeads[] {
+    const condicoes = [filtro.naoContatar ? 'l.nao_contatar = 1' : 'l.nao_contatar = 0'];
+    const parametros: string[] = [];
+    if (filtro.status) {
+      condicoes.push('l.status = ?');
+      parametros.push(filtro.status);
+    }
+    const linhas = db
+      .prepare(`select l.*, (select count(*) from notas n where n.cnpj = l.cnpj) as total_notas from leads l where ${condicoes.join(' and ')} order by l.atualizado_em desc limit 1000`)
+      .all(...parametros) as unknown as (LinhaLead & { total_notas: number })[];
+    return linhas.map(l => ({ ...paraLead(l), notas: l.total_notas }));
+  },
+
+  totalNaoContatar(): number {
+    return (db.prepare('select count(*) as n from leads where nao_contatar = 1').get() as { n: number }).n;
   },
 
   contagemPorStatus(): Record<StatusLead, number> {
